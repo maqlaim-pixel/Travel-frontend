@@ -33,11 +33,7 @@ export default function AdminDestinationForm() {
   const [preview, setPreview] = useState(false)
   const textFileRef = useRef(null)
 
-  return (
-  <div style={{ padding: '40px', fontSize: '30px' }}>
-    TEST — Destination Form Works
-  </div>
-)
+ 
 
   const [form, setForm] = useState({
     name: '', slug: '', country: 'India', state: '', type: 'domestic',
