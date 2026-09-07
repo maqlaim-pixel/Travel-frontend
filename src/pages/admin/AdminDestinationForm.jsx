@@ -27,17 +27,13 @@ export default function AdminDestinationForm() {
   const navigate = useNavigate()
   const { id } = useParams()
 
-   return (
-  <div style={{ padding: '40px', fontSize: '30px' }}>
-    TEST — Destination Form Works
-  </div>
-)
-  // const isEdit = !!id
-  // const [activeTab, setActiveTab] = useState('basic')
-  // const [saving, setSaving] = useState(false)
-  // const [error, setError] = useState('')
-  // const [preview, setPreview] = useState(false)
-  // const textFileRef = useRef(null)
+
+  const isEdit = !!id
+  const [activeTab, setActiveTab] = useState('basic')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [preview, setPreview] = useState(false)
+  const textFileRef = useRef(null)
 
  
 
