@@ -1,80 +1,49 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react'
+import { getOtpErrorMessage, isValidEmail } from '../../utils/otpErrors'
 
-export default function LoginPage() {
+export default function LoginPage({ admin = false }) {
+  const { login, adminLogin, resendRegistration, user, isAdmin } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login, user } = useAuth()
-  const navigate = useNavigate()
-
-  if (user) {
-    navigate(user.role === 'super_admin' || user.role === 'admin' ? '/admin' : '/account')
-    return null
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const [needsVerification, setNeedsVerification] = useState(false)
+  useEffect(() => { if (user) navigate(isAdmin ? '/admin' : '/', { replace: true }) }, [user, isAdmin, navigate])
+  const submit = async event => {
+    event.preventDefault()
+    if (!isValidEmail(email)) { setError('Please enter a valid email address'); return }
+    setLoading(true); setError(''); setNeedsVerification(false)
     try {
-      const userData = await login(email, password)
-      navigate(userData.role === 'super_admin' || userData.role === 'admin' ? '/admin' : '/account')
+      if (admin) { await adminLogin(email.trim().toLowerCase(), password); navigate('/admin', { replace: true }) }
+      else { await login(email.trim().toLowerCase(), password); navigate('/verify-otp') }
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid email or password')
-    } finally {
-      setLoading(false)
+      setError(getOtpErrorMessage(err))
+      setNeedsVerification(!admin && err.response?.status === 403 && /complete email verification/i.test(err.response?.data?.error || ''))
     }
+    finally { setLoading(false) }
   }
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-700 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-xl">TV</span>
-            </div>
-          </Link>
-          <h1 className="text-2xl font-display font-bold text-navy-900">Welcome Back</h1>
-          <p className="text-navy-500 mt-1">Sign in to your TravelVista account</p>
-        </div>
-
-        <div className="bg-white rounded-xl border p-8">
-          {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-6">{error}</div>}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-navy-700 mb-1.5">Email</label>
-              <div className="relative">
-                <Mail size={18} className="absolute left-3 top-3.5 text-navy-400" />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@travelvista.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-sky-500 focus:outline-none" required />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-navy-700 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3 top-3.5 text-navy-400" />
-                <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 rounded-lg border focus:ring-2 focus:ring-sky-500 focus:outline-none" required />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-3.5 text-navy-400">
-                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-            <button type="submit" disabled={loading} className="w-full btn-primary flex items-center justify-center gap-2">
-              <LogIn size={18} /> {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-          <p className="text-center text-sm text-navy-500 mt-6">
-            Don't have an account? <Link to="/register" className="text-sky-600 font-medium hover:underline">Register</Link>
-          </p>
-        </div>
-      </div>
+  const completeVerification = async () => {
+    setLoading(true); setError('')
+    try { await resendRegistration(email.trim().toLowerCase()); navigate('/verify-otp') }
+    catch (err) { setError(getOtpErrorMessage(err)) }
+    finally { setLoading(false) }
+  }
+  return <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+    <div className="w-full max-w-md bg-white rounded-xl border p-8">
+      <h1 className="text-2xl font-bold text-navy-900 mb-2">{admin ? 'Admin Sign In' : 'Welcome Back'}</h1>
+      <p className="text-sm text-navy-500 mb-6">{admin ? 'Sign in to manage TravelVista.' : 'Sign in with your password, then verify the code sent to your email.'}</p>
+      {error && <p role="alert" className="bg-red-50 text-red-600 p-3 rounded-lg mb-4">{error}</p>}
+      <form onSubmit={submit} className="space-y-5">
+        <label className="block">Email<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} className="block w-full border rounded-lg p-3 mt-1" /></label>
+        <label className="block">Password<input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} className="block w-full border rounded-lg p-3 mt-1" /></label>
+        <button disabled={loading} className="w-full btn-primary disabled:opacity-60">{loading ? 'Signing in...' : 'Sign In'}</button>
+      </form>
+      {needsVerification && <button type="button" disabled={loading} onClick={completeVerification} className="mt-4 text-sky-600">Send email verification code</button>}
+      {!admin && <div className="mt-5 text-sm flex justify-between"><Link to="/forgot-password">Forgot password?</Link><Link to="/register">Create account</Link></div>}
+      <Link className="block mt-5 text-sm text-sky-600" to={admin ? '/login' : '/admin/login'}>{admin ? 'Customer sign in' : 'Admin sign in'}</Link>
     </div>
-  )
+  </div>
 }

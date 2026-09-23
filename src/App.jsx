@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom'
+import VerifyOtpPage from './pages/auth/VerifyOtpPage'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 // Layouts
@@ -69,6 +70,7 @@ import InternationalPackagesPage from './pages/international/InternationalPackag
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 
 // Customer Pages
 import CustomerDashboard from './pages/customer/CustomerDashboard'
@@ -77,6 +79,11 @@ import Wishlist from './pages/customer/Wishlist'
 import ProfilePage from './pages/customer/ProfilePage'
 import CustomerReviews from './pages/customer/CustomerReviews'
 import MyEnquiries from './pages/customer/MyEnquiries'
+import MyInvoices from './pages/customer/MyInvoices'
+import InvoiceDetail from './pages/invoices/InvoiceDetail'
+
+import AdminInvoices from './pages/admin/AdminInvoices'
+import InvoiceForm from './pages/admin/InvoiceForm'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -100,7 +107,7 @@ import AdminBlogForm from './pages/admin/AdminBlogForm'
 function ProtectedRoute({ children, requireAdmin = false }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600" /></div>
-  if (!user) return <LoginPage />
+  if (!user) return <Navigate to={requireAdmin ? "/admin/login" : "/login"} replace />
   if (requireAdmin && !['super_admin', 'admin', 'content_manager', 'editor'].includes(user.role)) return <div className="p-8 text-center"><h1 className="text-2xl font-bold text-red-600">Access Denied</h1><p>You don't have permission.</p></div>
   return children
 }
@@ -183,7 +190,10 @@ export default function App() {
         <Route path="/international/:countrySlug/packages" element={<InternationalPackagesPage />} />
         <Route path="/international/:countrySlug/:citySlug" element={<InternationalCityDetail />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin/login" element={<LoginPage admin />} />
+        <Route path="/verify-otp" element={<VerifyOtpPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Route>
 
       {/* ── Customer Routes ────────────────────────────────────── */}
@@ -194,6 +204,8 @@ export default function App() {
         <Route path="/account/wishlist" element={<Wishlist />} />
         <Route path="/account/reviews" element={<CustomerReviews />} />
         <Route path="/account/enquiries" element={<MyEnquiries />} />
+        <Route path="/account/invoices" element={<MyInvoices />} />
+        <Route path="/account/invoices/:id" element={<InvoiceDetail />} />
       </Route>
 
       {/* ── Admin Routes ───────────────────────────────────────── */}
@@ -220,6 +232,10 @@ export default function App() {
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="approvals" element={<AdminApprovalCenter />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="invoices" element={<AdminInvoices />} />
+        <Route path="invoices/new" element={<InvoiceForm />} />
+        <Route path="invoices/:id" element={<InvoiceDetail admin />} />
+        <Route path="invoices/:id/edit" element={<InvoiceForm />} />
       </Route>
     </Routes>
   )
