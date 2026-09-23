@@ -1,0 +1,12 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Download, FileText, Loader2 } from 'lucide-react'
+import api from '../../services/api'
+const money = value => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+export default function MyInvoices() {
+  const [invoices, setInvoices] = useState(null), [error, setError] = useState('')
+  useEffect(() => { api.get('/invoices/my').then(r => setInvoices(r.data)).catch(e => setError(e.response?.data?.error || 'Unable to load invoices')) }, [])
+  const download = async invoice => { const r = await api.get(`/invoices/${invoice.id}/pdf`, { responseType: 'blob' }); const url = URL.createObjectURL(r.data); const a = document.createElement('a'); a.href = url; a.download = `${invoice.invoiceNumber}.pdf`; a.click(); URL.revokeObjectURL(url) }
+  if (!invoices) return error ? <div className="p-6 bg-red-50 text-red-700 rounded-lg">{error}</div> : <div className="p-12 flex justify-center"><Loader2 className="animate-spin"/></div>
+  return <div><div className="flex items-center gap-3 mb-6"><FileText className="text-sky-600"/><div><h1 className="text-2xl font-bold">My Invoices</h1><p className="text-sm text-navy-500">Invoices belonging to your account</p></div></div>{invoices.length === 0 ? <div className="bg-white border rounded-xl p-12 text-center text-navy-500">No invoices found.</div> : <div className="bg-white border rounded-xl overflow-x-auto"><table className="w-full min-w-[650px]"><thead><tr className="bg-gray-50 border-b text-left text-xs uppercase text-navy-500"><th className="p-4">Invoice</th><th className="p-4">Date</th><th className="p-4">Booking</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead><tbody>{invoices.map(i => <tr key={i.id} className="border-b last:border-0"><td className="p-4 font-mono text-sm"><Link className="text-sky-600 hover:underline" to={`/account/invoices/${i.id}`}>{i.invoiceNumber}</Link></td><td className="p-4">{i.invoiceDate || '—'}</td><td className="p-4">{i.booking?.bookingRef || '—'}</td><td className="p-4 font-semibold">{money(i.grandTotal)}</td><td className="p-4"><span className="px-2 py-1 rounded-full bg-slate-100 text-xs">{i.status}</span></td><td className="p-4"><button onClick={() => download(i)} className="inline-flex items-center gap-1 text-sm text-sky-600"><Download size={15}/> PDF</button></td></tr>)}</tbody></table></div>}</div>
+}
